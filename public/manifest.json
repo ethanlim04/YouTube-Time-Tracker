@@ -3,6 +3,9 @@
   "name": "YouTube Time Tracker",
   "description": "YouTube watch time tracker",
   "version": "1.0.0",
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "index.html"
   },

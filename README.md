@@ -1,3 +1,7 @@
+Features to add:
+- Watch time limit
+- Time limit exclude list (music)
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
