@@ -52,47 +52,72 @@ const updateTabs = (): {[key: number]: chrome.tabs.Tab} | any => {
 }
 
 
-const getVideoTitle = (tabId: number): string | any => {
-  chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}, (res) => {
-    // console.log(res)
-    return res
-  })
-}
-
-const getPlaying = (): {[key: number]: chrome.tabs.Tab} | any => {
-  chrome.storage.session.get("playing").then((playing) => {
-    
-  })
-  
-}
-
 chrome.tabs.onActivated.addListener((currentTab) => {
   // console.log("Tab selected")
   chrome.tabs.get(currentTab.tabId).then((tab) => {
     if(tab.url?.includes("youtube.com/watch?v=")) {
       updateTabs().then((tabs) => {
-        // let tabs = updateTabs()
-        // console.log(".then")
         console.log(tabs)
         if(!tabs[tab.id!]) tabs[tab.id!] = tab
         chrome.storage.session.set({"CurrentTabs": tabs})
-        // console.log(tabs)
       })
     }
   })
 })
 
+const getVideoTitle = (tabId: number): string | any => {
+  chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((res) => {
+    console.log(res)
+    return res[0].result
+  })
+}
+
+const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boolean | undefined) => {
+  chrome.storage.session.get("playing").then((res) => {
+    console.log(Object.keys(res))
+    let playing = res["playing"]
+    if(!playing) playing = {}
+    if(Object.keys(playing).indexOf(title) == -1) {
+      if(playingStatus) playing[title] = {lastStart: Date.now() - 500, lastEnd: 0, lastPlaying: playingStatus, totalPlayTime: 0}
+      else playing[title] = {lastStart: 0, lastEnd: 0, lastPlaying: playingStatus, totalPlayTime: 0}
+    }
+    else {
+      if(playingStatus && !playing[title].lastPlaying) { //Paused then started playing again
+        if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += (playing[title].lastEnd - playing[title].lastStart)
+        playing[title].lastStart = Date.now()// - 500
+        playing[title].lastPlaying = playingStatus
+      }
+      else if(!playingStatus && playing[title].lastPlaying) { //Playing then paused
+        playing[title].lastEnd = Date.now() - 3000
+        if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += playing[title].lastEnd - playing[title].lastStart
+        playing[title].lastPlaying = playingStatus
+      }
+      else { //Playing => Playing or Paused => Paused?????
+        console.log("Did not switch status")
+      }
+    }
+    chrome.storage.session.set({"playing": playing})
+  })
+}
+
+
+
+
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  console.log("UPDATED")
+  // console.log("UPDATED")
   if(tab.url?.includes("youtube.com/watch?v=")) {
     console.log(Object.keys(changeInfo))
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
-      getVideoTitle(tabId).then((title) => {
-        if(changeInfo.audible) {
-          console.log(title)
-        }
-      })
-
+      // getVideoTitle(tabId).then((title) => {
+      //   console.log("THROUGH")
+      //   console.log(title)
+      // })
+      // chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((title) => {
+      //   console.log(title)
+      // })
+      let title = "【誕生日に】Ubiquitous dB／湊あくあ【歌ってみた】"
+      updatePlaying(tab, title, changeInfo.audible)
     }
   }
 })
