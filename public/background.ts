@@ -1,5 +1,3 @@
-import { allowedNodeEnvironmentFlags } from "process";
-
 /* eslint-disable */
 const getTabs = async (): Promise<chrome.tabs.Tab[]> => {
   const tabs = await chrome.tabs.query({
@@ -8,11 +6,17 @@ const getTabs = async (): Promise<chrome.tabs.Tab[]> => {
   return tabs;
 }
 
-const checkTabs = (arr1: chrome.tabs.Tab[] | undefined, arr2: chrome.tabs.Tab[]) => {
-  if(!arr1 || arr2.length === 0) return false;
-  if(arr1.length != arr2.length) return false;
-  for(let i = 0; i < arr1.length; i++) {
-    if(!(arr1[i].id === arr2[i].id && arr1[i].windowId === arr2[i].windowId && arr1[i].url === arr2[i].url)) {
+const checkTabs = (arr1: {[key: number]: chrome.tabs.Tab} | undefined, arr2: {[key: number]: chrome.tabs.Tab}) => {
+  // console.log("LENGTHS:", arr1?.length, arr2.length)
+  if(!arr1 || Object.keys(arr2).length === 0) return false
+  if(Object.keys(arr1).length != Object.keys(arr2).length) return false
+  for(let i = 0; i < Object.keys(arr1).length; i++) {
+    if(Object.keys(arr2).indexOf(Object.keys(arr1)[i]) == -1) return false
+  }
+  for(let i = 0; i < Object.keys(arr1).length; i++) {
+    let keyId = Object.keys(arr1)[i]
+    if(!(arr1[keyId].id === arr2[keyId].id && arr1[keyId].windowId === arr2[keyId].windowId && arr1[keyId].url === arr2[keyId].url && arr1[keyId].playing === arr2[keyId].playing)) {
+      console.log("DIFFERENT:", arr1[keyId], arr2[keyId])
       return false
     }
   }
@@ -29,20 +33,29 @@ const toYtTabs = ((arr: chrome.tabs.Tab[]):  {[key: number]: chrome.tabs.Tab} =>
   return res
 })
 
-// const getYoutubeTabs = (): Promise<{key: chrome.tabs.Tab[]}> | any => {
-//   return chrome.storage.session.get(["CurrentTabs"])
-// }
-
-const updateTabs = (): {[key: number]: chrome.tabs.Tab} | any => {
-  let tabs: chrome.tabs.Tab[] | undefined | any = chrome.storage.session.get(["CurrentTabs"])
-  getTabs().then((res) => {
-    console.log(tabs)
-    if(!checkTabs(tabs, res)) {
+const updateTabs = (): {[key: number]: chrome.tabs.Tab} | any => {  
+  chrome.storage.session.get("CurrentTabs").then((tabs) => {
+    getTabs().then((res) => {
       let result = toYtTabs(res)
-      chrome.storage.session.set({"CurrentTabs": result}).then(() => {
+      console.log(checkTabs(tabs["CurrentTabs"], result))
+      if(!checkTabs(tabs["CurrentTabs"], result)) {
+        chrome.storage.session.set({"CurrentTabs": result}).then(() => {
+          // console.log("updateTabs")
+          return result
+        })
+      }
+      else {
         return result
-      })
-    }
+      }
+    })
+  })
+}
+
+
+const getVideoTitle = (tabId: number): string | any => {
+  chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}, (res) => {
+    // console.log(res)
+    return res
   })
 }
 
@@ -54,20 +67,35 @@ const getPlaying = (): {[key: number]: chrome.tabs.Tab} | any => {
 }
 
 chrome.tabs.onActivated.addListener((currentTab) => {
-    chrome.tabs.get(currentTab.tabId).then((tab) => {
-      if(tab.url?.includes("youtube.com")) {
-        updateTabs().then((tabs) => {
-          if(!tabs[tab.id!]) tabs[tab.id!] = tab
-          else {
-            if(tabs[tab.id!].audible) {
-              console.log("YES")
-            }
-          }
-          chrome.storage.session.set({"CurrentTabs": tabs})
-          console.log(tabs)
-        })
-      }
-    })
+  // console.log("Tab selected")
+  chrome.tabs.get(currentTab.tabId).then((tab) => {
+    if(tab.url?.includes("youtube.com/watch?v=")) {
+      updateTabs().then((tabs) => {
+        // let tabs = updateTabs()
+        // console.log(".then")
+        console.log(tabs)
+        if(!tabs[tab.id!]) tabs[tab.id!] = tab
+        chrome.storage.session.set({"CurrentTabs": tabs})
+        // console.log(tabs)
+      })
+    }
+  })
 })
 
-export {}
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  console.log("UPDATED")
+  if(tab.url?.includes("youtube.com/watch?v=")) {
+    console.log(Object.keys(changeInfo))
+    if(Object.keys(changeInfo).indexOf("audible") != -1) {
+      getVideoTitle(tabId).then((title) => {
+        if(changeInfo.audible) {
+          console.log(title)
+        }
+      })
+
+    }
+  }
+})
+
+
+// export {}
