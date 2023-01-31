@@ -65,9 +65,9 @@ chrome.tabs.onActivated.addListener((currentTab) => {
   })
 })
 
-const getVideoTitle = (tabId: number): string | any => {
-  chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((res) => {
-    console.log(res)
+const getVideoTitle = (tabId: number): Promise<any> => {
+  return chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((res) => {
+    // console.log(res)
     return res[0].result
   })
 }
@@ -109,15 +109,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if(tab.url?.includes("youtube.com/watch?v=")) {
     console.log(Object.keys(changeInfo))
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
-      // getVideoTitle(tabId).then((title) => {
-      //   console.log("THROUGH")
-      //   console.log(title)
-      // })
+      getVideoTitle(tabId).then((title) => {
+        updatePlaying(tab, title, changeInfo.audible)
+      })
       // chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((title) => {
       //   console.log(title)
       // })
-      let title = "【誕生日に】Ubiquitous dB／湊あくあ【歌ってみた】"
-      updatePlaying(tab, title, changeInfo.audible)
+      // let title = "【誕生日に】Ubiquitous dB／湊あくあ【歌ってみた】"
+      // updatePlaying(tab, title, changeInfo.audible)
     }
   }
 })
