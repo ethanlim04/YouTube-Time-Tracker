@@ -108,6 +108,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // console.log("UPDATED")
   if(tab.url?.includes("youtube.com/watch?v=")) {
     console.log(Object.keys(changeInfo))
+    // Change status playing??
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
       getVideoTitle(tabId).then((title) => {
         updatePlaying(tab, title, changeInfo.audible)
