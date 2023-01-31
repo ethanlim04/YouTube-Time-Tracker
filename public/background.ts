@@ -59,7 +59,9 @@ chrome.tabs.onActivated.addListener((currentTab) => {
         updateTabs().then((tabs) => {
           if(!tabs[tab.id!]) tabs[tab.id!] = tab
           else {
-            if(tabs[tab.id!].audible)
+            if(tabs[tab.id!].audible) {
+              console.log("YES")
+            }
           }
           chrome.storage.session.set({"CurrentTabs": tabs})
           console.log(tabs)
