@@ -68,7 +68,7 @@ chrome.tabs.onActivated.addListener((currentTab) => {
 const getVideoTitle = (tabId: number): Promise<any> => {
   return chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((res) => {
     // console.log(res)
-    return res[0].result
+    return String(res[0].result).trim()
   })
 }
 
