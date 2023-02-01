@@ -42,6 +42,7 @@ function App() {
     //     chrome.storage.session.set({"CurrentTabs": toYtTabs(res)})
     //   }
     // })
+    console.log(chrome.storage.local.get("songs"))
   })
 
   return (
