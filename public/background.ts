@@ -174,12 +174,17 @@ const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boole
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     // Change status playing??
-
+    let currentTime = Date.now()
     if(changeInfo.url) {
       // console.log("YES")
       chrome.storage.session.get("CurrentTabs").then((tabs) => {
         if(Object.keys(tabs["CurrentTabs"]).indexOf(String(tabId)) != -1) {
-            console.log(tabs["CurrentTabs"][tabId].title)
+            // console.log(tabs["CurrentTabs"][tabId].title)
+            updatePlaying(tab, tabs["CurrentTabs"][tabId].title, false, currentTime)
+            updateTabs().then((currentTabs) => {
+              // console.log(currentTabs)
+              chrome.storage.session.set({"CurrentTabs": currentTabs})
+            })
           }
       })
 
@@ -188,7 +193,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     
     if(tab.url?.includes("youtube.com/watch?v=")) {
     // console.log(Object.keys(changeInfo))
-    let currentTime = Date.now()
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
       console.log("Audible", changeInfo.audible)
       updatePlaying(tab, getVideoTitle(tab), changeInfo.audible, currentTime)
