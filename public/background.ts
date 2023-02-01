@@ -93,7 +93,7 @@ const toLocalStorage = (songs) => {
 const getVideoTitle = (tab: chrome.tabs.Tab): string => {
   let tempTitle = String(tab.title).trim()
   if(tempTitle.length > 10) {
-    if(tempTitle[0] === "(" && tempTitle[2] === ")")
+    if(tempTitle[0] === "(")
       return tempTitle.substring(3, tempTitle.length - 10)
   }
   return tempTitle.substring(0, tempTitle.length - 10)
@@ -111,22 +111,36 @@ const toYtTabs = ((arr: chrome.tabs.Tab[]):  {[key: number]: {tab: chrome.tabs.T
 
 
 
-const updateTabs = (): {[key: number]: {tab: chrome.tabs.Tab, title: string}} | any => {  
-  chrome.storage.session.get("CurrentTabs").then((tabs) => {
-    getTabs().then((res) => {
-      let result = toYtTabs(res)
+// const updateTabs = (): {[key: number]: {tab: chrome.tabs.Tab, title: string}} | any => {  
+//   chrome.storage.session.get("CurrentTabs").then((tabs) => {
+//     getTabs().then((res) => {
+//       let result = toYtTabs(res)
       
-      console.log(checkTabs(tabs["CurrentTabs"], result))
-      if(!checkTabs(tabs["CurrentTabs"], result)) {
-        chrome.storage.session.set({"CurrentTabs": result}).then(() => {
-          return result
-        })
-      }
-      else {
-        return result
-      }
+//       console.log(checkTabs(tabs["CurrentTabs"], result))
+//       if(!checkTabs(tabs["CurrentTabs"], result)) {
+//         chrome.storage.session.set({"CurrentTabs": result}).then(() => {
+//           return result
+//         })
+//       }
+//       else {
+//         return result
+//       }
+//     })
+//   })
+// }
+// {[key: number]: {tab: chrome.tabs.Tab, title: string}}
+const updateTabs = async (): Promise<any> => {  
+  let tabs = await chrome.storage.session.get("CurrentTabs")
+  let result = toYtTabs(await getTabs())
+  console.log("CHECK TABS", checkTabs(tabs["CurrentTabs"], result))
+  if(!checkTabs(tabs["CurrentTabs"], result)) {
+    chrome.storage.session.set({"CurrentTabs": result}).then(() => {
+      return result
     })
-  })
+  }
+  else {
+    return result
+  }
 }
 
 chrome.tabs.onActivated.addListener((currentTab) => {
@@ -178,14 +192,15 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if(changeInfo.url) {
       // console.log("YES")
       chrome.storage.session.get("CurrentTabs").then((tabs) => {
-        if(Object.keys(tabs["CurrentTabs"]).indexOf(String(tabId)) != -1) {
-            // console.log(tabs["CurrentTabs"][tabId].title)
+        if(tabs["CurrentTabs"]) {
+          if(Object.keys(tabs["CurrentTabs"]).indexOf(String(tabId)) != -1) {
+            console.log(tabs["CurrentTabs"][tabId].title)
             updatePlaying(tab, tabs["CurrentTabs"][tabId].title, false, currentTime)
             updateTabs().then((currentTabs) => {
-              // console.log(currentTabs)
               chrome.storage.session.set({"CurrentTabs": currentTabs})
             })
           }
+        }
       })
 
     }
