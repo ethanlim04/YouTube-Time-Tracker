@@ -1,21 +1,83 @@
 /* eslint-disable */
+
+// const checkTabs = (arr1: {[key: number]: chrome.tabs.Tab} | undefined, arr2: {[key: number]: chrome.tabs.Tab}) => {
+//   // console.log("LENGTHS:", arr1?.length, arr2.length)
+//   if(!arr1 || Object.keys(arr2).length === 0) return false
+//   if(Object.keys(arr1).length != Object.keys(arr2).length) return false
+//   for(let i = 0; i < Object.keys(arr1).length; i++) {
+//     if(Object.keys(arr2).indexOf(Object.keys(arr1)[i]) == -1) return false
+//   }
+//   for(let i = 0; i < Object.keys(arr1).length; i++) {
+//     let keyId = Object.keys(arr1)[i]
+//     if(!(arr1[keyId].id === arr2[keyId].id && arr1[keyId].windowId === arr2[keyId].windowId && arr1[keyId].url === arr2[keyId].url && arr1[keyId].playing === arr2[keyId].playing)) {
+//       console.log("DIFFERENT:", arr1[keyId], arr2[keyId])
+//       return false
+//     }
+//   }
+//   return true
+// }
+
+
+// const toYtTabs = ((arr: chrome.tabs.Tab[]):  {[key: number]: chrome.tabs.Tab} => {
+//   let res: {[key: number]: chrome.tabs.Tab} = {}
+//   if(!arr) return res
+//   for(let i = 0; i < arr.length; i++) {
+//     if(!arr[i].id) return res
+//     res[arr[i].id!] = arr[i]
+//   }
+//   return res
+// })
+
+// const updateTabs = (): {[key: number]: chrome.tabs.Tab} | any => {  
+//   chrome.storage.session.get("CurrentTabs").then((tabs) => {
+//     getTabs().then((res) => {
+//       let result = toYtTabs(res)
+//       console.log(checkTabs(tabs["CurrentTabs"], result))
+//       if(!checkTabs(tabs["CurrentTabs"], result)) {
+//         chrome.storage.session.set({"CurrentTabs": result}).then(() => {
+//           // console.log("updateTabs")
+//           return result
+//         })
+//       }
+//       else {
+//         return result
+//       }
+//     })
+//   })
+// }
+
+// const getVideoTitle = (tabId: number): Promise<any> => {
+//   return chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((res) => {
+//     // console.log(res)
+//     return String(res[0].result).trim()
+//   })
+// }
+// getVideoTitle(tabId).then((title) => {
+//   updatePlaying(tab, title, changeInfo.audible, currentTime)
+// })
 const getTabs = async (): Promise<chrome.tabs.Tab[]> => {
   const tabs = await chrome.tabs.query({
-    url: ["https://www.youtube.com/*"]
+    url: ["https://www.youtube.com/watch*"]
   })
   return tabs;
 }
 
-const checkTabs = (arr1: {[key: number]: chrome.tabs.Tab} | undefined, arr2: {[key: number]: chrome.tabs.Tab}) => {
+const checkTabs = (arr1: {[key: number]: {tab: chrome.tabs.Tab, title: string}} | undefined, arr2: {[key: number]: {tab: chrome.tabs.Tab, title: string}}) => {
   // console.log("LENGTHS:", arr1?.length, arr2.length)
-  if(!arr1 || Object.keys(arr2).length === 0) return false
-  if(Object.keys(arr1).length != Object.keys(arr2).length) return false
+  if(!arr1 || Object.keys(arr2).length === 0) {
+    console.log("ARR1 NULL")
+    return false
+  }
+  if(Object.keys(arr1).length != Object.keys(arr2).length) {
+    console.log("Length Different")
+    return false
+  }
   for(let i = 0; i < Object.keys(arr1).length; i++) {
     if(Object.keys(arr2).indexOf(Object.keys(arr1)[i]) == -1) return false
   }
   for(let i = 0; i < Object.keys(arr1).length; i++) {
     let keyId = Object.keys(arr1)[i]
-    if(!(arr1[keyId].id === arr2[keyId].id && arr1[keyId].windowId === arr2[keyId].windowId && arr1[keyId].url === arr2[keyId].url && arr1[keyId].playing === arr2[keyId].playing)) {
+    if(!(arr1[keyId].tab.id === arr2[keyId].tab.id && arr1[keyId].tab.windowId === arr2[keyId].tab.windowId && arr1[keyId].tab.url === arr2[keyId].tab.url && arr1[keyId].tab.playing === arr2[keyId].tab.playing)) {
       console.log("DIFFERENT:", arr1[keyId], arr2[keyId])
       return false
     }
@@ -28,25 +90,35 @@ const toLocalStorage = (songs) => {
   chrome.storage.local.set({"songs": songs})
 }
 
+const getVideoTitle = (tab: chrome.tabs.Tab): string => {
+  let tempTitle = String(tab.title).trim()
+  if(tempTitle.length > 10) {
+    if(tempTitle[0] === "(" && tempTitle[2] === ")")
+      return tempTitle.substring(3, tempTitle.length - 10)
+  }
+  return tempTitle.substring(0, tempTitle.length - 10)
+}
 
-const toYtTabs = ((arr: chrome.tabs.Tab[]):  {[key: number]: chrome.tabs.Tab} => {
-  let res: {[key: number]: chrome.tabs.Tab} = {}
+const toYtTabs = ((arr: chrome.tabs.Tab[]):  {[key: number]: {tab: chrome.tabs.Tab, title: string}} => {
+  let res: {[key: number]: {tab: chrome.tabs.Tab, title: string}} = {}
   if(!arr) return res
   for(let i = 0; i < arr.length; i++) {
     if(!arr[i].id) return res
-    res[arr[i].id!] = arr[i]
+    res[arr[i].id!] = {"tab": arr[i], "title": getVideoTitle(arr[i])}
   }
   return res
 })
 
-const updateTabs = (): {[key: number]: chrome.tabs.Tab} | any => {  
+
+
+const updateTabs = (): {[key: number]: {tab: chrome.tabs.Tab, title: string}} | any => {  
   chrome.storage.session.get("CurrentTabs").then((tabs) => {
     getTabs().then((res) => {
       let result = toYtTabs(res)
+      
       console.log(checkTabs(tabs["CurrentTabs"], result))
       if(!checkTabs(tabs["CurrentTabs"], result)) {
         chrome.storage.session.set({"CurrentTabs": result}).then(() => {
-          // console.log("updateTabs")
           return result
         })
       }
@@ -56,7 +128,6 @@ const updateTabs = (): {[key: number]: chrome.tabs.Tab} | any => {
     })
   })
 }
-
 
 chrome.tabs.onActivated.addListener((currentTab) => {
   // console.log("Tab selected")
@@ -70,13 +141,6 @@ chrome.tabs.onActivated.addListener((currentTab) => {
     }
   })
 })
-
-const getVideoTitle = (tabId: number): Promise<any> => {
-  return chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((res) => {
-    // console.log(res)
-    return String(res[0].result).trim()
-  })
-}
 
 const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boolean | undefined, currentTime: number) => {
   chrome.storage.session.get("playing").then((res) => {
@@ -110,11 +174,12 @@ const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boole
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     // Change status playing??
+
     if(changeInfo.url) {
-      console.log("YES")
+      // console.log("YES")
       chrome.storage.session.get("CurrentTabs").then((tabs) => {
         if(Object.keys(tabs["CurrentTabs"]).indexOf(String(tabId)) != -1) {
-            console.log("WAS YOUTUBE")
+            console.log(tabs["CurrentTabs"][tabId].title)
           }
       })
 
@@ -124,15 +189,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if(tab.url?.includes("youtube.com/watch?v=")) {
     // console.log(Object.keys(changeInfo))
     let currentTime = Date.now()
-    // if(Object.keys(changeInfo).indexOf("url") != -1) {
-    //   console.log("URL CHANGE!!!!!")
-    // }
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
       console.log("Audible", changeInfo.audible)
-      getVideoTitle(tabId).then((title) => {
-        updatePlaying(tab, title, changeInfo.audible, currentTime)
-      })
-
+      updatePlaying(tab, getVideoTitle(tab), changeInfo.audible, currentTime)
 
       // chrome.scripting.executeScript({target: {tabId: tabId}, files: ['getTitle.js']}).then((title) => {
       //   console.log(title)
