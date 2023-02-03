@@ -97,7 +97,8 @@ const checkTabs = (arr1: {[key: number]: {tab: chrome.tabs.Tab, title: string}} 
   for(let i = 0; i < Object.keys(arr1).length; i++) {
     let keyId = Object.keys(arr1)[i]
     if(!(arr1[keyId].tab.id === arr2[keyId].tab.id && arr1[keyId].tab.windowId === arr2[keyId].tab.windowId && arr1[keyId].tab.url === arr2[keyId].tab.url && arr1[keyId].tab.playing === arr2[keyId].tab.playing)) {
-      console.log("DIFFERENT:", arr1[keyId], arr2[keyId])
+      // console.log("DIFFERENT:", arr1[keyId], arr2[keyId])
+      console.log("Tab information different")
       return false
     }
   }
@@ -131,7 +132,7 @@ const toYtTabs = ((arr: chrome.tabs.Tab[]):  {[key: number]: {tab: chrome.tabs.T
 const updateTabs = async (): Promise<any> => {  
   let tabs = await chrome.storage.session.get("CurrentTabs")
   let result = toYtTabs(await getTabs())
-  console.log("CHECK TABS", checkTabs(tabs["CurrentTabs"], result))
+  // console.log("CHECK TABS", checkTabs(tabs["CurrentTabs"], result))
   if(!checkTabs(tabs["CurrentTabs"], result)) {
     chrome.storage.session.set({"CurrentTabs": result}).then(() => {
       return result
@@ -141,19 +142,6 @@ const updateTabs = async (): Promise<any> => {
     return result
   }
 }
-
-chrome.tabs.onActivated.addListener((currentTab) => {
-  // console.log("Tab selected")
-  chrome.tabs.get(currentTab.tabId).then((tab) => {
-    if(tab.url?.includes("youtube.com/watch?v=")) {
-      updateTabs().then((tabs) => {
-        console.log("ACTIVATED TABS", tabs)
-        if(!tabs[tab.id!]) tabs[tab.id!] = tab
-        chrome.storage.session.set({"CurrentTabs": tabs})
-      })
-    }
-  })
-})
 
 const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boolean | undefined, currentTime: number) => {
   chrome.storage.session.get("playing").then((res) => {
@@ -166,16 +154,18 @@ const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boole
     }
     else {
       if(playingStatus && !playing[title].lastPlaying) { //Paused then started playing again
-        if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += (playing[title].lastEnd - playing[title].lastStart)
+        // if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += (playing[title].lastEnd - playing[title].lastStart)
         playing[title].lastStart = currentTime // - 500
         playing[title].lastPlaying = playingStatus
+        // console.log(title, " updated to playing = ", playingStatus, "and added ", (playing[title].lastEnd - playing[title].lastStart)/1000, " seconds")
       }
       else if(!playingStatus && playing[title].lastPlaying) { //Playing then paused
         playing[title].lastEnd = currentTime - 3000//- 3500
         if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += playing[title].lastEnd - playing[title].lastStart
         playing[title].lastPlaying = playingStatus
+        console.log(title, " updated to playing = ", playingStatus, "and added ", (playing[title].lastEnd - playing[title].lastStart)/1000, " seconds")
       }
-      else { //Playing => Playing or Paused => Paused?????
+      else { //Playing => Playing or Paused => Paused????? (Or deleting or moving from paused tab)
         console.log("Did not switch status")
       }
     }
@@ -188,13 +178,15 @@ const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boole
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Change status playing??
   console.log("CHANGE INFO:", changeInfo)
+
   let currentTime = Date.now()
   if(changeInfo.url) {
     // console.log("YES")
     chrome.storage.session.get("CurrentTabs").then((tabs) => {
       if(tabs["CurrentTabs"]) {
         if(Object.keys(tabs["CurrentTabs"]).indexOf(String(tabId)) != -1) {
-          console.log(tabs["CurrentTabs"][tabId].title)
+          // console.log(tabs["CurrentTabs"][tabId].title)
+          console.log("VIDEO CHANGED: ", tabs["CurrentTabs"][tabId].title)
           updatePlaying(tab, tabs["CurrentTabs"][tabId].title, false, currentTime)
           //Wait for page to load
           //Check when tab title updates (url changes => page loads => title changes)
@@ -205,21 +197,41 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   if(changeInfo.title) {
     if(tab.url?.includes("youtube.com/watch?v=")) {
-      console.log("TITLE CHANGED :D")
+      // console.log("TITLE CHANGED :D")
       updatePlaying(tab, getVideoTitle(tab), tab.audible, currentTime)
       updateTabs()
     }
   }
 
-  
-  
   if(tab.url?.includes("youtube.com/watch?v=")) {
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
-      console.log("Audible", getVideoTitle(tab), changeInfo.audible)
+      // console.log("Audible", getVideoTitle(tab), changeInfo.audible)
       updatePlaying(tab, getVideoTitle(tab), changeInfo.audible, currentTime)
     }
   }
 })
 
+chrome.tabs.onActivated.addListener((currentTab) => {
+  // console.log("Tab selected")
+  chrome.tabs.get(currentTab.tabId).then((tab) => {
+    if(tab.url?.includes("youtube.com/watch?v=")) {
+      updateTabs().then((tabs) => {
+        // console.log("ACTIVATED TABS", tabs)
+        if(!tabs[tab.id!]) tabs[tab.id!] = tab
+        chrome.storage.session.set({"CurrentTabs": tabs})
+      })
+    }
+  })
+})
+
+chrome.tabs.onRemoved.addListener((closedTab) => {
+  let currentTime = Date.now()
+  chrome.storage.session.get("CurrentTabs").then((tabs) => {
+    if(tabs["CurrentTabs"][closedTab].url.includes("youtube.com/watch?v=")) {
+      updatePlaying(tabs["CurrentTabs"][closedTab], tabs["CurrentTabs"][closedTab].title, false, currentTime)
+      updateTabs()
+    }
+  })
+})
 
 // export {}

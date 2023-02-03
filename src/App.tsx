@@ -34,15 +34,15 @@ const toYtTabs = ((arr: chrome.tabs.Tab[]) => {
 
 function App() {
   // const [tabs, setTabs] = useState<chrome.tabs.Tab[]>()
+  let items
   useEffect(() => {
-    // let tabs: chrome.tabs.Tab[] | undefined | any = chrome.storage.session.get(["CurrentTabs"])
-    // getTabs().then((res) => {
-    //   console.log(tabs)
-    //   if(!checkTabs(tabs, res)) {
-    //     chrome.storage.session.set({"CurrentTabs": toYtTabs(res)})
-    //   }
-    // })
-    console.log(chrome.storage.local.get("songs"))
+    chrome.storage.local.get("songs").then((songs) => {
+      // console.log(songs)
+      let titles = Object.keys(songs)
+      items = titles.map((title, idx) => {
+        return <li key={idx}>{title}</li>
+      })
+    })
   })
 
   return (
@@ -60,6 +60,7 @@ function App() {
         >
           Learn React
         </a>
+        <ul>{items}</ul>
       </header>
     </div>
   );
