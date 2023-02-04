@@ -4,66 +4,53 @@ import logo from './logo.svg';
 import './App.css';
 import { useState, useEffect } from 'react';
 
-const getTabs = async (): Promise<chrome.tabs.Tab[]> => {
-  const tabs = await chrome.tabs.query({
-    url: ["https://www.youtube.com/*"]
-  })
-  return tabs;
-}
-
-const checkTabs = (arr1: chrome.tabs.Tab[] | undefined, arr2: chrome.tabs.Tab[]) => {
-  if(!arr1 || arr2.length === 0) return false;
-  if(arr1.length != arr2.length) return false;
-  for(let i = 0; i < arr1.length; i++) {
-    if(!(arr1[i].id === arr2[i].id && arr1[i].windowId === arr2[i].windowId && arr1[i].url === arr2[i].url)) {
-      return false
-    }
-  }
-  return true
-}
-
-const toYtTabs = ((arr: chrome.tabs.Tab[]) => {
-  let res: {[key: number]: chrome.tabs.Tab} = {}
-  if(!arr) return res
-  for(let i = 0; i < arr.length; i++) {
-    if(!arr[i].id) return res
-    res[arr[i].id!] = arr[i]
-  }
-  return res
-})
-
 function App() {
   // const [tabs, setTabs] = useState<chrome.tabs.Tab[]>()
-  let items
+  const [songs, setSongs] = useState<{title: chrome.tabs.Tab}>()
+
   useEffect(() => {
-    chrome.storage.local.get("songs").then((songs) => {
-      // console.log(songs)
-      let titles = Object.keys(songs)
-      items = titles.map((title, idx) => {
-        return <li key={idx}>{title}</li>
-      })
+    chrome.storage.local.get("songs").then((data) => {
+      setSongs(data["songs"])
     })
-  })
+    return;
+  }, [])
+  if(songs) {
+    console.log('songs ', songs)
+    const res = Object.keys(songs!).map(song => <li>{song}</li>)
+    return (
+      <div className="App">
+        <ul>{res}</ul>
+      </div>
+    )
+  }
+
 
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-        <ul>{items}</ul>
-      </header>
+      {/* <ul>{res}</ul> */}
     </div>
   );
+
+
+  // return (
+  //   <div className="App">
+  //     <header className="App-header">
+  //       <img src={logo} className="App-logo" alt="logo" />
+  //       <p>
+  //         Edit <code>src/App.tsx</code> and save to reload.
+  //       </p>
+  //       <a
+  //         className="App-link"
+  //         href="https://reactjs.org"
+  //         target="_blank"
+  //         rel="noopener noreferrer"
+  //       >
+  //         Learn React
+  //       </a>
+  //       <p>Current Time: {currTime}</p>
+  //     </header>
+  //   </div>
+  // );
 }
 
 export default App;
