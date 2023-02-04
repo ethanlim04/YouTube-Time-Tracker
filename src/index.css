@@ -5,8 +5,14 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-width: 400px;
+  min-width: 450px;
   min-height: 600px;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  height: 100vh;
 }
 
 code {

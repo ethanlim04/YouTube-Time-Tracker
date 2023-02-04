@@ -83,7 +83,7 @@ const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boole
         playing[title].lastPlaying = playingStatus
       }
       else if(!playingStatus && playing[title].lastPlaying) { //Playing then paused
-        playing[title].lastEnd = currentTime //- 3500
+        playing[title].lastEnd = currentTime - 1500 //- 3500
         if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += playing[title].lastEnd - playing[title].lastStart
         playing[title].lastPlaying = playingStatus
         // console.log(title, " updated to playing = ", playingStatus, "and added ", (playing[title].lastEnd - playing[title].lastStart)/1000, " seconds")
