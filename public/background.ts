@@ -94,6 +94,18 @@ const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boole
     }
     chrome.storage.session.set({"playing": playing})
     toLocalStorage(playing)
+    updateTotalTime()
+  })
+}
+
+const updateTotalTime = () => {
+  let totalTime: number = 0;
+  chrome.storage.session.get("playing").then((data) => {
+    const playing: {title: {lastPlaying: boolean, lastStart: number, lastEnd: number, totalPlayTime: number}} = data["playing"]
+    for(let song in playing) {
+      totalTime += playing[song].totalPlayTime
+    }
+    chrome.storage.local.set({"totalTime": totalTime})
   })
 }
 

@@ -20,6 +20,7 @@ function App() {
   // const [tabs, setTabs] = useState<chrome.tabs.Tab[]>()
   const [songs, setSongs] = useState<{[title: string]: {lastEnd: number, lastPlaying: boolean, lastStart: number, totalPlayTime: number}}>()
   const [data, setData] = useState<DataTableRow<string>[]>([])
+  const [totalTime, setTotalTime] = useState<number>()
 
   useEffect(() => {
     chrome.storage.local.get("songs").then((res) => {
@@ -54,6 +55,12 @@ function App() {
       }
     })
 
+
+    chrome.storage.local.get("totalTime").then((time) => {
+      setTotalTime(time["totalTime"])
+    })
+    
+
     return;
   }, [])
   console.log("Data", data)
@@ -78,6 +85,7 @@ function App() {
       <div className="App">
         <div className="container">
           <Tile className="content-container">
+            <p>TOTAL WATCH TIME: {String(Math.floor(totalTime!/1000/60)) + "M : " + String(Math.floor(totalTime!/1000)%60) + "S"}</p>
             <DataTable
               rows={data}
               headers={headerData}
