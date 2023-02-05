@@ -5,8 +5,10 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-width: 450px;
-  min-height: 600px;
+  /* min-width: 450px;
+  min-height: 600px; */
+  min-width: 600px;
+  min-height: 900px;
 }
 
 .container {

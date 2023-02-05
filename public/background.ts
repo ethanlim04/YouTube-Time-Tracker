@@ -68,30 +68,38 @@ const updateTabs = async (): Promise<any> => {
   }
 }
 
+
+const setPlaying = (playing: {[title: string]: {lastStart: number, lastEnd: number, totalPlayTime: number, lastPlaying: boolean}}, tab: chrome.tabs.Tab, title: string, playingStatus: boolean, currentTime: number) => {
+  if(Object.keys(playing).indexOf(title) == -1) {
+    if(playingStatus) playing[title] = {lastStart: currentTime, lastEnd: 0, lastPlaying: playingStatus, totalPlayTime: 0}
+    else playing[title] = {lastStart: 0, lastEnd: 0, lastPlaying: playingStatus, totalPlayTime: 0}
+  }
+  else {
+    if(playingStatus && !playing[title].lastPlaying) { //Paused then started playing again
+      playing[title].lastStart = currentTime // - 500
+      playing[title].lastPlaying = playingStatus
+    }
+    else if(!playingStatus && playing[title].lastPlaying) { //Playing then paused
+      playing[title].lastEnd = currentTime - 1500 //- 3500
+      if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += playing[title].lastEnd - playing[title].lastStart
+      playing[title].lastPlaying = playingStatus
+      // console.log(title, " updated to playing = ", playingStatus, "and added ", (playing[title].lastEnd - playing[title].lastStart)/1000, " seconds")
+    }
+    // else { //Playing => Playing or Paused => Paused????? (Or deleting or moving from paused tab)
+    //   console.log("Did not switch status")
+    // }
+  }
+  return playing
+}
+
 const updatePlaying = (tab: chrome.tabs.Tab, title: string, playingStatus: boolean | undefined, currentTime: number) => {
+  // console.log("UPDATING SONG: ", title, playingStatus)
   chrome.storage.session.get("playing").then((res) => {
     // console.log(Object.keys(res))
     let playing = res["playing"]
     if(!playing) playing = {}
-    if(Object.keys(playing).indexOf(title) == -1) {
-      if(playingStatus) playing[title] = {lastStart: currentTime, lastEnd: 0, lastPlaying: playingStatus, totalPlayTime: 0}
-      else playing[title] = {lastStart: 0, lastEnd: 0, lastPlaying: playingStatus, totalPlayTime: 0}
-    }
-    else {
-      if(playingStatus && !playing[title].lastPlaying) { //Paused then started playing again
-        playing[title].lastStart = currentTime // - 500
-        playing[title].lastPlaying = playingStatus
-      }
-      else if(!playingStatus && playing[title].lastPlaying) { //Playing then paused
-        playing[title].lastEnd = currentTime - 1500 //- 3500
-        if(playing[title].lastEnd - playing[title].lastStart > 0) playing[title].totalPlayTime += playing[title].lastEnd - playing[title].lastStart
-        playing[title].lastPlaying = playingStatus
-        // console.log(title, " updated to playing = ", playingStatus, "and added ", (playing[title].lastEnd - playing[title].lastStart)/1000, " seconds")
-      }
-      // else { //Playing => Playing or Paused => Paused????? (Or deleting or moving from paused tab)
-      //   console.log("Did not switch status")
-      // }
-    }
+    if(!playingStatus) playingStatus = false
+    playing = setPlaying(playing, tab, title, playingStatus, currentTime)
     chrome.storage.session.set({"playing": playing})
     toLocalStorage(playing)
     updateTotalTime()
@@ -108,7 +116,6 @@ const updateTotalTime = () => {
     chrome.storage.local.set({"totalTime": totalTime})
   })
 }
-
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Change status playing??
@@ -138,21 +145,46 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   //Video play/paused => Change status of video
   if(tab.url?.includes("youtube.com/watch?v=")) {
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
-      // console.log("Audible", getVideoTitle(tab), changeInfo.audible)
       updatePlaying(tab, getVideoTitle(tab), changeInfo.audible, currentTime)
     }
   }
 })
 
 //Tab with video deleted
-chrome.tabs.onRemoved.addListener((closedTab) => {
+chrome.tabs.onRemoved.addListener((closedTab, removeInfo) => {
   let currentTime = Date.now()
   chrome.storage.session.get("CurrentTabs").then((tabs) => {
-    console.log("TAB REMOVED", closedTab)
-    if(tabs["CurrentTabs"][closedTab].url.includes("youtube.com/watch?v=")) {
-      updatePlaying(tabs["CurrentTabs"][closedTab], tabs["CurrentTabs"][closedTab].title, false, currentTime)
+    // console.log("URL", tabs["CurrentTabs"][closedTab].tab.url)
+
+    //If whole window is closed
+    if(removeInfo.isWindowClosing) {
+      console.log("WINDOW CLOSED")
+      chrome.storage.session.get("playing").then((data) => {
+        let playing: {[title: string]: {lastPlaying: boolean, lastStart: number, lastEnd: number, totalPlayTime: number}} = data["playing"]
+        for(const tab in tabs["CurrentTabs"]) {
+          if(tabs["CurrentTabs"][tab].tab.windowId === removeInfo.windowId) {
+            // console.log("UPDATING: ", tabs["CurrentTabs"][tab].title)
+            playing = setPlaying(playing, tabs["CurrentTabs"][tab].tab, tabs["CurrentTabs"][tab].title, false, currentTime)
+          }
+        }
+        chrome.storage.session.set({"playing": playing})
+        toLocalStorage(playing)
+        updateTotalTime()
+      })
       updateTabs()
     }
+
+    // //If only one tab is closed
+    else {
+      if(tabs["CurrentTabs"][closedTab].tab.url.includes("youtube.com/watch?v=")) {
+        console.log("updating time", tabs["CurrentTabs"][closedTab].title)
+        updatePlaying(tabs["CurrentTabs"][closedTab].tab, tabs["CurrentTabs"][closedTab].title, false, currentTime)
+        updateTabs()
+      }
+    }
+
+    //Update at the end, after pausing all closed tabs (when window is closed)
+    // updateTabs()
   })
 })
 
