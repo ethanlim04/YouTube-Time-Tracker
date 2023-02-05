@@ -32,8 +32,8 @@ function App() {
   const [totalTime, setTotalTime] = useState<number>()
   const [totalTimeDate, setTotalTimeDate] = useState<{[day: string]: number}>()
   const [date, setDate] = useState<string>()
-  const [hidePaused, setCheckbox] = useState<boolean>()
-  const [dayDataOnly, setDayDataOnly] = useState<boolean>()
+  const [hidePaused, setCheckbox] = useState<boolean>(false)
+  const [dayDataOnly, setDayDataOnly] = useState<boolean>(false)
 
   useEffect(() => {
     chrome.storage.local.get("songs").then((res) => {
@@ -58,21 +58,36 @@ function App() {
           else  status = "Paused"
           
           let totalPlayTime = ""
-          if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) totalPlayTime = String(Math.floor(((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) + "M : " + String(Math.floor((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
-          else  totalPlayTime = String(Math.floor((res["songs"][song].totalPlayTime / 1000) / 60)) + "M : " + String(Math.floor(res["songs"][song].totalPlayTime / 1000) % 60) + "S"
-
+          let totalPlayTimeNum = 0
+          if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) {
+            totalPlayTime = String(Math.floor((((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) / 60)) + "H " + String(Math.floor(((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) % 60) + "M " + String(Math.floor((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
+            totalPlayTimeNum = res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)
+          }
+          else {
+            totalPlayTime = String(Math.floor(((res["songs"][song].totalPlayTime / 1000) / 60) / 60)) + "H " + String(Math.floor((res["songs"][song].totalPlayTime / 1000) / 60) % 60) + "M " + String(Math.floor(res["songs"][song].totalPlayTime / 1000) % 60) + "S"
+            totalPlayTimeNum = res["songs"][song].totalPlayTime
+          }
           let date = new Date().toISOString().slice(0, 10)
           let playTimeDate = "-------"
+          let playTimeDateNum = 0
           if(typeof(res["songs"][song].totalPlayTimeDates[date]) != "undefined") {
-            if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) playTimeDate = String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) + "M : " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
-            else playTimeDate = String(Math.floor((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60)) + "M : " + String(Math.floor(res["songs"][song].totalPlayTimeDates[date] / 1000) % 60) + "S"
+            if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) {
+              playTimeDate = String(Math.floor(((((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) / 60)) + "H " + String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) % 60) + "M " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
+              playTimeDateNum = res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)
+            }
+            else {
+              playTimeDate =String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) / 60)) + "H " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) % 60) + "M " + String(Math.floor(res["songs"][song].totalPlayTimeDates[date] / 1000) % 60) + "S"
+              playTimeDateNum = res["songs"][song].totalPlayTimeDates[date]
+            }
           }
 
           const toPush = {
             id: String(count),
             title: song,
             playTimeDate: playTimeDate,
+            playTimeDateNum: playTimeDateNum,
             totalPlayTime: totalPlayTime,
+            totalPlayTimeNum: totalPlayTimeNum,
             playingStatus: status
           }
 
@@ -133,13 +148,15 @@ function App() {
     }
   ]
 
+  //WORK ON SORTING LIST PROPERLY
   if(songs) {
     return (
       <div className="App">
         <div className="container">
           <Tile className="content-container">
-            <h3>TOTAL WATCH TIME TODAY: {String(Math.floor(totalTimeDate![date!]/1000/60)) + "M : " + String(Math.floor(totalTimeDate![date!]/1000)%60) + "S"}</h3>
-            <p>TOTAL WATCH TIME: {String(Math.floor(totalTime!/1000/60)) + "M : " + String(Math.floor(totalTime!/1000)%60) + "S"}</p>
+            <h3>TOTAL WATCH TIME TODAY: {String(Math.floor(totalTimeDate![date!]/1000/60/60)) + "H " + String(Math.floor(totalTimeDate![date!]/1000/60) % 60) + "M " + String(Math.floor(totalTimeDate![date!]/1000) % 60) + "S"}</h3>
+            <p>TOTAL WATCH TIME: {String(Math.floor(totalTime!/1000/60/60)) + "H " + String(Math.floor(totalTime!/1000/60) % 60) + "M " + String(Math.floor(totalTime!/1000)%60) + "S"}</p>
+
             {/* <Toggle
             aria-label="toggle button"
             defaultToggled
@@ -150,7 +167,7 @@ function App() {
               setCheckbox(!hidePaused)
               // console.log("Status changed")
             }}/>
-            <Checkbox labelText="Only Show Songs Played Today" id="day-data-only" checked={dayDataOnly} onChange={() => {
+            <Checkbox labelText="Only Show Videos Played Today" id="day-data-only" checked={dayDataOnly} onChange={() => {
               setDayDataOnly(!dayDataOnly)
               // console.log("Status changed")
             }}/>
@@ -159,7 +176,7 @@ function App() {
               headers={headerData}
               isSortable
               render={({rows, headers, getHeaderProps}) => (
-                <TableContainer title="Watched Videos">
+                <TableContainer>
 
                  {/* <TableToolbar>
                  <TableToolbarContent>
