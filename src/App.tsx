@@ -27,13 +27,24 @@ import {
 
 function App() {
   // const [tabs, setTabs] = useState<chrome.tabs.Tab[]>()
-  const [songs, setSongs] = useState<{[title: string]: {lastEnd: number, lastPlaying: boolean, lastStart: number, totalPlayTime: number}}>()
+  const [songs, setSongs] = useState<{[title: string]: {lastStart: number, lastEnd: number, totalPlayTime: number, lastPlaying: boolean, totalPlayTimeDates: {[day: string]: number}}}>()
   const [data, setData] = useState<DataTableRow<string>[]>([])
   const [totalTime, setTotalTime] = useState<number>()
-  const [hidePaused, setCheckbox] = useState<boolean>(false)
+  const [totalTimeDate, setTotalTimeDate] = useState<{[day: string]: number}>()
+  const [date, setDate] = useState<string>()
+  const [hidePaused, setCheckbox] = useState<boolean>()
+  const [dayDataOnly, setDayDataOnly] = useState<boolean>()
 
   useEffect(() => {
     chrome.storage.local.get("songs").then((res) => {
+
+      // if(typeof(hidePaused) === "undefined" && typeof(dayDataOnly) === "undefined") {
+      //   chrome.storage.sync.get("UserSettings").then((settings) => {
+      //     setCheckbox(settings["hide-paused"])
+      //     setDayDataOnly(settings["day-data-only"])
+      //   })
+      // }
+
       setSongs(res["songs"])
       if(res["songs"]) {
         console.log('songs ', res["songs"])
@@ -50,19 +61,33 @@ function App() {
           if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) totalPlayTime = String(Math.floor(((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) + "M : " + String(Math.floor((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
           else  totalPlayTime = String(Math.floor((res["songs"][song].totalPlayTime / 1000) / 60)) + "M : " + String(Math.floor(res["songs"][song].totalPlayTime / 1000) % 60) + "S"
 
+          let date = new Date().toISOString().slice(0, 10)
+          let playTimeDate = "-------"
+          if(typeof(res["songs"][song].totalPlayTimeDates[date]) != "undefined") {
+            if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) playTimeDate = String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) + "M : " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
+            else playTimeDate = String(Math.floor((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60)) + "M : " + String(Math.floor(res["songs"][song].totalPlayTimeDates[date] / 1000) % 60) + "S"
+          }
+
           const toPush = {
             id: String(count),
             title: song,
+            playTimeDate: playTimeDate,
             totalPlayTime: totalPlayTime,
             playingStatus: status
           }
 
-          //Only display playing when user toggles option
-          if(!hidePaused) {
+          //Only display when user toggles option
+          if(!hidePaused && !dayDataOnly) {
             dataArr.push(toPush)
           }
-          else {
+          else if(hidePaused && !dayDataOnly){
             if(toPush.playingStatus === "Playing") dataArr.push(toPush)
+          }
+          else if(!hidePaused && dayDataOnly) {
+            if(toPush.playTimeDate != "-------") dataArr.push(toPush)
+          }
+          else {
+            if(toPush.playTimeDate != "-------" && toPush.playingStatus === "Playing") dataArr.push(toPush)
           }
           count += 1
         }
@@ -74,12 +99,20 @@ function App() {
     chrome.storage.local.get("totalTime").then((time) => {
       setTotalTime(time["totalTime"])
     })
+    chrome.storage.local.get("totalTimeDate").then((timeDate) => {
+      console.log(timeDate)
+      setTotalTimeDate(timeDate["totalTimeDate"])
+    })
+    setDate(String(new Date().toISOString().slice(0, 10)))
+
+    // chrome.storage.sync.set({"UserSettings": {"hide-paused": hidePaused, "day-data-only": dayDataOnly}})
+
     return;
   // }, [])
-  }, [hidePaused])
+  }, [hidePaused, dayDataOnly])
 
   console.log("Data", data)
-  console.log("Show Playing only", hidePaused)
+  console.log("TOTAL TIME DATE", totalTimeDate)
 
   const headerData = [
     {
@@ -87,7 +120,11 @@ function App() {
       key: "title"
     },
     {
-      header: "Time Watched",
+      header: "Time Watched Today",
+      key: "playTimeDate"
+    },
+    {
+      header: "Time Watched Total",
       key: "totalPlayTime"
     },
     {
@@ -101,6 +138,7 @@ function App() {
       <div className="App">
         <div className="container">
           <Tile className="content-container">
+            <h3>TOTAL WATCH TIME TODAY: {String(Math.floor(totalTimeDate![date!]/1000/60)) + "M : " + String(Math.floor(totalTimeDate![date!]/1000)%60) + "S"}</h3>
             <p>TOTAL WATCH TIME: {String(Math.floor(totalTime!/1000/60)) + "M : " + String(Math.floor(totalTime!/1000)%60) + "S"}</p>
             {/* <Toggle
             aria-label="toggle button"
@@ -110,7 +148,11 @@ function App() {
             /> */}
             <Checkbox labelText="Hide Paused" id="hide-paused" checked={hidePaused} onChange={() => {
               setCheckbox(!hidePaused)
-              console.log("Status changed")
+              // console.log("Status changed")
+            }}/>
+            <Checkbox labelText="Only Show Songs Played Today" id="day-data-only" checked={dayDataOnly} onChange={() => {
+              setDayDataOnly(!dayDataOnly)
+              // console.log("Status changed")
             }}/>
             <DataTable
               rows={data}
@@ -162,32 +204,6 @@ function App() {
                 </TableContainer>
               )}
             />
-              {/* <DataTable rows={data} headers={headerData} isSortable>
-                {({ rows, headers, getHeaderProps, getRowProps, getTableProps }) => (
-                  <TableContainer title="DataTable" description="With sorting">
-                    <Table {...getTableProps()}>
-                      <TableHead>
-                        <TableRow>
-                          {headers.map((header) => (
-                            <TableHeader key={header.key} {...getHeaderProps({ header })}>
-                                {header.header}
-                              </TableHeader>
-                            ))}
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {rows.map((row) => (
-                            <TableRow key={row.id} {...getRowProps({ row })}>
-                              {row.cells.map((cell) => (
-                                <TableCell key={cell.id}>{cell.value}</TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                )}
-              </DataTable> */}
           </Tile>
         </div>
       </div>
@@ -198,30 +214,8 @@ function App() {
 
   return (
     <div className="App">
-      {/* <ul>{res}</ul> */}
     </div>
   );
-
-
-  // return (
-  //   <div className="App">
-  //     <header className="App-header">
-  //       <img src={logo} className="App-logo" alt="logo" />
-  //       <p>
-  //         Edit <code>src/App.tsx</code> and save to reload.
-  //       </p>
-  //       <a
-  //         className="App-link"
-  //         href="https://reactjs.org"
-  //         target="_blank"
-  //         rel="noopener noreferrer"
-  //       >
-  //         Learn React
-  //       </a>
-  //       <p>Current Time: {currTime}</p>
-  //     </header>
-  //   </div>
-  // );
 }
 
 export default App;
