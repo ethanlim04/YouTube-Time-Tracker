@@ -1,8 +1,13 @@
-@import "~carbon-components/scss/globals/scss/theme";
+// @import "~carbon-components/scss/globals/scss/theme";
 
-@import "@carbon/themes/scss/themes";
+// @import "@carbon/themes/scss/themes";
 
-$carbon--theme: $carbon--theme--g100;
-@include carbon--theme();
+// $carbon--theme: $carbon--theme--g100;
+// @include carbon--theme();
 
-@import "~carbon-components/scss/globals/scss/styles.scss";
+// @import "~carbon-components/scss/globals/scss/styles.scss";
+
+
+@import '@carbon/react'
+
+// @import "~carbon-components/scss/components/data-table/_data-table-expandable.scss"
