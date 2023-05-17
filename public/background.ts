@@ -165,7 +165,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   //Video play/paused => Change status of video
   if(tab.url?.includes("youtube.com/watch?v=")) {
     if(Object.keys(changeInfo).indexOf("audible") != -1) {
-      updatePlaying(tab, getVideoTitle(tab), changeInfo.audible, currentTime)
+
+
+
+      updatePlaying(tab, getVideoTitle(tab), changeInfo.audible, currentTime) //Issue: audible checks if there is anything audible for all tabs
+
+
+
+      
     }
   }
 })
