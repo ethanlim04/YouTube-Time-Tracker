@@ -45,6 +45,12 @@ const modifyLocalStorage = async (status: boolean, time: number) => {
         hours += Math.floor(time/60/60)
         minutes += Math.floor((time/60)%60)
         seconds += time%60
+
+        minutes += Math.floor(seconds/60)
+        hours += Math.floor(minutes/60)
+        minutes %= 60
+        seconds %= 60
+
         totalWatchTime = `${hours}H${minutes}M${seconds}S`
         ytVideos["yt_videos"][id]["totalTime"] = totalWatchTime
 
@@ -108,6 +114,8 @@ const handleChange = (mutation_: any) => {
 
             console.log(`Paused for ${pausedFor/1000} seconds`)
             console.log("playing")
+
+            modifyLocalStorage(paused, 0)
         }
 
         //buffering (= previous state) change later to be equal to paused?

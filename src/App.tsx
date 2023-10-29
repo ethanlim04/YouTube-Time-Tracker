@@ -27,7 +27,7 @@ import {
 
 function App() {
   // const [tabs, setTabs] = useState<chrome.tabs.Tab[]>()
-  const [songs, setSongs] = useState<{[title: string]: {lastStart: number, lastEnd: number, totalPlayTime: number, lastPlaying: boolean, totalPlayTimeDates: {[day: string]: number}}}>()
+  const [ytVideos, setYtVideos] = useState<boolean>(false)
   const [data, setData] = useState<DataTableRow<string>[]>([])
   const [totalTime, setTotalTime] = useState<number>()
   const [totalTimeDate, setTotalTimeDate] = useState<{[day: string]: number}>()
@@ -37,39 +37,21 @@ function App() {
 
   useEffect(() => {
     chrome.storage.local.get("yt_videos").then((res: any) => {
-
-      console.log(res)
-      // setSongs(res["yt_videos"])
+      console.log("yt_videos:", res)
+      setYtVideos(true)
       if(res["yt_videos"]) {
         const dataArr: DataTableRow<string>[] = []
         let count = 0;
         for(const id in res["yt_videos"]) {
 
-          // console.log("SONG INFO", res["songs"][song])
-          let status = res["yt_video"][id].status
-          let totalPlayTime = res["yt_video"][id]["totalTime"]
-          let date = new Date().toISOString().slice(0, 10)
-          // let playTimeDate = "-------"
-          // let playTimeDateNum = 0
-          // if(typeof(res["songs"][song].totalPlayTimeDates[date]) != "undefined") {
-          //   if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) {
-          //     playTimeDate = String(Math.floor(((((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) / 60)) + "H " + String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) % 60) + "M " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
-          //     playTimeDateNum = res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)
-          //   }
-          //   else {
-          //     playTimeDate =String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) / 60)) + "H " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) % 60) + "M " + String(Math.floor(res["songs"][song].totalPlayTimeDates[date] / 1000) % 60) + "S"
-          //     playTimeDateNum = res["songs"][song].totalPlayTimeDates[date]
-          //   }
-          // }
-
           const toPush = {
             id: String(count),
-            title:  res["yt_video"][id]["title"],
-            playTimeDate: res["yt_video"][id]["totalTime"],
+            title:  res["yt_videos"][id]["title"],
+            playTimeDate: res["yt_videos"][id]["totalTime"],
             playTimeDateNum: 0,
-            totalPlayTime: res["yt_video"][id]["totalTime"],
+            totalPlayTime: res["yt_videos"][id]["totalTime"],
             totalPlayTimeNum: 0,
-            playingStatus: res["yt_video"][id]["status"]
+            playingStatus: res["yt_videos"][id]["status"]
           }
 
           //Only display when user toggles option
@@ -87,6 +69,8 @@ function App() {
           }
           count += 1
         }
+
+        console.log("DATARR", dataArr)
         setData(dataArr)
       }
     })
@@ -130,7 +114,7 @@ function App() {
   ]
 
   //WORK ON SORTING LIST PROPERLY
-  if(songs) {
+  if(ytVideos) {
     return (
       <div className="App">
         <div className="container">
