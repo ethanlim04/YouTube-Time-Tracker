@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@carbon/react": "^1.22.0",
-    "@testing-library/jest-dom": "^5.16.5",
+    "@carbon/react": "^1.40.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
@@ -15,15 +14,14 @@
     "carbon-components-react": "^8.22.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "^2.1.3",
-    "typescript": "^4.9.4",
+    "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && cd build && del background.ts && cd .. && tsc --out build/background.js public/background.ts",
+    "build": "react-scripts build && cd build && del background.ts && del content.ts && cd .. && tsc --out build/background.js public/background.ts && tsc --out build/content.js public/content.ts",
     "build-bash": "react-scripts build && rm -rf build/background.ts && tsc --out build/background.js public/background.ts",
-    "tscompile": "tsc --out build/background.js public/background.ts",
+    "tscompile": "tsc --out build/background.js public/background.ts && tsc --out build/content.js public/content.ts",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -46,9 +44,13 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^5.17.0",
     "@types/carbon-components-react": "^7.55.2",
     "@types/chrome": "0.0.210",
+    "@types/expect": "^24.3.0",
+    "@types/jquery": "^3.5.25",
     "carbon-icons": "^7.0.7",
-    "sass": "^1.58.0"
+    "sass": "^1.58.0",
+    "typescript": "^4.9.5"
   }
 }

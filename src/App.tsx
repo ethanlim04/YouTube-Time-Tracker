@@ -36,59 +36,40 @@ function App() {
   const [dayDataOnly, setDayDataOnly] = useState<boolean>(false)
 
   useEffect(() => {
-    chrome.storage.local.get("songs").then((res) => {
+    chrome.storage.local.get("yt_videos").then((res: any) => {
 
-      // if(typeof(hidePaused) === "undefined" && typeof(dayDataOnly) === "undefined") {
-      //   chrome.storage.sync.get("UserSettings").then((settings) => {
-      //     setCheckbox(settings["hide-paused"])
-      //     setDayDataOnly(settings["day-data-only"])
-      //   })
-      // }
-
-      setSongs(res["songs"])
-      if(res["songs"]) {
-        console.log('songs ', res["songs"])
+      console.log(res)
+      // setSongs(res["yt_videos"])
+      if(res["yt_videos"]) {
         const dataArr: DataTableRow<string>[] = []
         let count = 0;
-        for(const song in res["songs"]) {
+        for(const id in res["yt_videos"]) {
 
           // console.log("SONG INFO", res["songs"][song])
-          let status = ""
-          if(res["songs"][song].lastPlaying) status = "Playing"
-          else  status = "Paused"
-          
-          let totalPlayTime = ""
-          let totalPlayTimeNum = 0
-          if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) {
-            totalPlayTime = String(Math.floor((((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) / 60)) + "H " + String(Math.floor(((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) % 60) + "M " + String(Math.floor((res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
-            totalPlayTimeNum = res["songs"][song].totalPlayTime + (Date.now() - res["songs"][song].lastStart)
-          }
-          else {
-            totalPlayTime = String(Math.floor(((res["songs"][song].totalPlayTime / 1000) / 60) / 60)) + "H " + String(Math.floor((res["songs"][song].totalPlayTime / 1000) / 60) % 60) + "M " + String(Math.floor(res["songs"][song].totalPlayTime / 1000) % 60) + "S"
-            totalPlayTimeNum = res["songs"][song].totalPlayTime
-          }
+          let status = res["yt_video"][id].status
+          let totalPlayTime = res["yt_video"][id]["totalTime"]
           let date = new Date().toISOString().slice(0, 10)
-          let playTimeDate = "-------"
-          let playTimeDateNum = 0
-          if(typeof(res["songs"][song].totalPlayTimeDates[date]) != "undefined") {
-            if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) {
-              playTimeDate = String(Math.floor(((((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) / 60)) + "H " + String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) % 60) + "M " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
-              playTimeDateNum = res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)
-            }
-            else {
-              playTimeDate =String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) / 60)) + "H " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) % 60) + "M " + String(Math.floor(res["songs"][song].totalPlayTimeDates[date] / 1000) % 60) + "S"
-              playTimeDateNum = res["songs"][song].totalPlayTimeDates[date]
-            }
-          }
+          // let playTimeDate = "-------"
+          // let playTimeDateNum = 0
+          // if(typeof(res["songs"][song].totalPlayTimeDates[date]) != "undefined") {
+          //   if(res["songs"][song].lastPlaying && Date.now() > res["songs"][song].lastStart) {
+          //     playTimeDate = String(Math.floor(((((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60)) / 60)) + "H " + String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) / 60) % 60) + "M " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)) / 1000) % 60) + "S"
+          //     playTimeDateNum = res["songs"][song].totalPlayTimeDates[date] + (Date.now() - res["songs"][song].lastStart)
+          //   }
+          //   else {
+          //     playTimeDate =String(Math.floor(((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) / 60)) + "H " + String(Math.floor((res["songs"][song].totalPlayTimeDates[date] / 1000) / 60) % 60) + "M " + String(Math.floor(res["songs"][song].totalPlayTimeDates[date] / 1000) % 60) + "S"
+          //     playTimeDateNum = res["songs"][song].totalPlayTimeDates[date]
+          //   }
+          // }
 
           const toPush = {
             id: String(count),
-            title: song,
-            playTimeDate: playTimeDate,
-            playTimeDateNum: playTimeDateNum,
-            totalPlayTime: totalPlayTime,
-            totalPlayTimeNum: totalPlayTimeNum,
-            playingStatus: status
+            title:  res["yt_video"][id]["title"],
+            playTimeDate: res["yt_video"][id]["totalTime"],
+            playTimeDateNum: 0,
+            totalPlayTime: res["yt_video"][id]["totalTime"],
+            totalPlayTimeNum: 0,
+            playingStatus: res["yt_video"][id]["status"]
           }
 
           //Only display when user toggles option
