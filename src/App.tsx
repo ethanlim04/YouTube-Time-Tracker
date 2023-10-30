@@ -44,12 +44,18 @@ function App() {
         let count = 0;
         for(const id in res["yt_videos"]) {
 
+          let watchTime: string = res["yt_videos"][id]["totalTime"]
+          let hours = parseFloat(watchTime.split("H")[0])
+          let minutes = parseFloat(watchTime.split("H")[1].split("M")[0])
+          let seconds = parseFloat(watchTime.split("H")[1].split("M")[1].split("S")[0])
+          let watchTimeTotal = `${hours}H : ${minutes}M : ${Math.floor(seconds)}S`
+
           const toPush = {
-            id: String(count),
+            id: id,
             title:  res["yt_videos"][id]["title"],
-            playTimeDate: res["yt_videos"][id]["totalTime"],
+            playTimeDate: watchTimeTotal,
             playTimeDateNum: 0,
-            totalPlayTime: res["yt_videos"][id]["totalTime"],
+            totalPlayTime: watchTimeTotal,
             totalPlayTimeNum: 0,
             playingStatus: res["yt_videos"][id]["status"]
           }

@@ -4,10 +4,54 @@
 
 //need to handle playing tab closed without being paused
 
-let paused: boolean = false;
-let lastPaused: number = 0;
-let pausedFor: number = 0;
-let totalPlaying: number = 0;
+let paused: boolean = false
+let lastPaused: number = 0
+let pausedFor: number = 0
+let totalPlaying: number = 0
+
+class Timer {
+    time: number
+    interval: number
+    timeInterval: any
+    paused: boolean
+
+    constructor(interval: number, paused: boolean) {
+        this.time = 0
+        this.interval = interval
+        this.paused = paused
+        if(!this.paused) {
+            this.start()
+        }
+    }
+
+    update(status: boolean): void {
+        if(this.paused && !status) {
+            this.start()
+        }
+        else if(!this.paused && status) {
+            this.stop()
+        }
+        this.paused = status
+    }
+    
+    get() {
+        return this.time
+    }
+
+    incrementTime() {
+        this.time += (this.interval)/1000
+    }
+
+    start() {
+        this.timeInterval = setInterval(this.incrementTime.bind(this), this.interval)
+    }
+
+    stop() {
+        clearInterval(this.timeInterval)
+    }
+}
+
+let timer: Timer = new Timer(100, true)
 
 
 let id: string = ""
@@ -30,12 +74,25 @@ const initLocalStorage = async () => {
     // chrome.storage.local.set({"yt_videos": {} })
 }
 
+/*
+    id: {
+        title,
+        channelName,
+        channelURL,
+        status,
+        total watch time,
+        daily watch time,
+        description,
+        hashtags
+    }
+*/
+
 const modifyLocalStorage = async (status: boolean, time: number) => {
     let ytVideos = await getLocalStorage()
     time /= 1000
     let totalWatchTime: string = ""
     let hours, minutes, seconds
-    
+
     if(ytVideos["yt_videos"][id]) {
         ytVideos["yt_videos"][id]["status"] = status ? "paused" : "playing"
         let watchTime: string = ytVideos["yt_videos"][id]["totalTime"]
@@ -94,10 +151,12 @@ const handleChange = (mutation_: any) => {
         if(status.includes("paused-mode") && !status.includes("playing-mode") && !paused) {
             paused = true
             currentTime = Date.now()
+            timer.update(paused)
 
             totalPlaying += currentTime - pausedFor - lastPaused
 
             console.log(`Played for ${totalPlaying/1000} seconds`)
+            console.log(`Timer: ${timer.get()} seconds`)
             console.log("paused")
 
             modifyLocalStorage(paused, currentTime - pausedFor - lastPaused)
@@ -109,11 +168,13 @@ const handleChange = (mutation_: any) => {
         else if(status.includes("playing-mode") && !status.includes("paused-mode") && paused) {
             paused = false;
             currentTime = Date.now()
+            timer.update(paused)
 
             pausedFor = currentTime - lastPaused
 
             console.log(`Paused for ${pausedFor/1000} seconds`)
             console.log("playing")
+
 
             modifyLocalStorage(paused, 0)
         }
@@ -137,11 +198,14 @@ const inject_script = () => {
     channelName = channelInfo.innerHTML
     channelURL = channelInfo.href
     
+    //document.querySelector('#description .style-scope .ytd-watch-metadata')
+    //document.querySelector('#info.style-scope.ytd-watch-info-text')
+    //document.getElementsByClassName("yt-core-attributed-string yt-core-attributed-string--white-space-pre-wrap")[0].innerText
     description = document.getElementById("description-inner")
     console.log(id, title, channelName)
 
 
-    if(!id || !title || !channelName) {
+    if(!id || !title || !channelName || id.length != 11) {
         console.log("Cannot process")
         return
     }
@@ -149,6 +213,10 @@ const inject_script = () => {
     initLocalStorage()
 
     let player = document.getElementById("movie_player")
+
+    modifyLocalStorage(paused, 0)
+    timer.update(paused)
+
     if(player) {
         observeElement(player, handleChange)
     }
